@@ -27,13 +27,23 @@ export default function TypingTest() {
 
 		socket.on("gameStart", () => {
 			setGameStarted(true);
-			setCountdown(null);
+			setCountdown(180);
+			const countdownInterval = setInterval(() => {
+				setCountdown((prevCountdown) => {
+					if (prevCountdown <= 1) {
+						clearInterval(countdownInterval);
+						return 0;
+					}
+					return prevCountdown - 1;
+				});
+			}, 1000);
 		});
 
 		socket.on("gameEnd", ({ status, score }) => {
 			setGameStarted(false);
 			setScore(score);
 			Swal.fire({ icon: "info", title: "Game Over", text: `Status: ${status}, Score: ${score}` });
+			setCountdown(null);
 		});
 
 		return () => socket.disconnect();
@@ -42,14 +52,15 @@ export default function TypingTest() {
 	const resetState = () => {
 		setCurrentWordIndex(0);
 		setTypedWord("");
-		setCountdown(null);
 		setGameStarted(false);
 		setScore(null);
 	};
 
 	const joinGame = () => {
 		resetState();
-		socket.emit("join", { style: "Slang/Informal" });
+		const styles = ["Old English-esque", "Modern Standard", "Slang/Informal", "Gen Z"];
+		const randomStyle = styles[Math.floor(Math.random() * styles.length)];
+		socket.emit("join", { style: randomStyle });
 	};
 
 	const currentChunkStart = Math.floor(currentWordIndex / chunkSize) * chunkSize;
