@@ -1,128 +1,103 @@
-import axios from "axios";
 import { useEffect, useState } from "react";
-import { getBaseUrl } from "../helpers/helper";
+import { io } from "socket.io-client";
 import Swal from "sweetalert2";
 
+const socket = io("http://localhost:3000");
+
 export default function TypingTest() {
-  const chunkSize = 20;
-  const [words, setWords] = useState([]);
-  const [message, setMessage] = useState("");
-  const [messages, setMessages] = useState([]);
-  useEffect(() => {
-    socket.on("chat message/response", (params) => {
-      console.log(params, "<<< message dari server");
-      setMessages(params.messages);
-    });
+	const chunkSize = 20;
+	const [words, setWords] = useState([]);
+	const [currentWordIndex, setCurrentWordIndex] = useState(0);
+	const [typedWord, setTypedWord] = useState("");
+	const [countdown, setCountdown] = useState(null);
+	const [gameStarted, setGameStarted] = useState(false);
+	const [score, setScore] = useState(null);
 
-    socket.emit("get chat messages");
+	useEffect(() => {
+		socket.on("waiting", ({ message }) => {
+			Swal.fire({ icon: "info", title: "Waiting", text: message });
+		});
 
-    return () => {
-      socket.disconnect();
-    };
-  }, []);
+		socket.on("start", ({ paragraph }) => {
+			setWords(paragraph);
+			Swal.fire({ icon: "success", title: "Game Starting Soon", text: "Get ready!" });
+		});
 
-  async function fetchParagraph() {
-    try {
-      const response = await axios.post(getBaseUrl() + "/generateText", {
-        style: "American English",
-      });
-      setWords(response.data.data);
-    } catch (error) {
-      console.log(error);
-      Swal.fire({
-        icon: "error",
-        title: "Error",
-        text: error.response.data.message,
-      });
-    }
-  }
-  useEffect(() => {
-    fetchParagraph();
-  }, []);
-  // currentWordIndex menyimpan index global kata yang sedang diketik
-  const [currentWordIndex, setCurrentWordIndex] = useState(0);
-  const [typedWord, setTypedWord] = useState("");
+		socket.on("countdown", ({ countdown }) => setCountdown(countdown));
 
-  // computed: menentukan chunk index berdasarkan currentWordIndex
-  const currentChunkStart =
-    Math.floor(currentWordIndex / chunkSize) * chunkSize;
-  const displayedWords = words.slice(
-    currentChunkStart,
-    currentChunkStart + chunkSize
-  );
+		socket.on("gameStart", () => {
+			setGameStarted(true);
+			setCountdown(null);
+		});
 
-  // Kata yang sedang aktif (dari array global)
-  const currentWord = words[currentWordIndex];
+		socket.on("gameEnd", ({ status, score }) => {
+			setGameStarted(false);
+			setScore(score);
+			Swal.fire({ icon: "info", title: "Game Over", text: `Status: ${status}, Score: ${score}` });
+		});
 
-  const handleInputChange = (e) => {
-    const value = e.target.value;
-    setTypedWord(value);
+		return () => socket.disconnect();
+	}, []);
 
-    // Jika pengguna mengetik spasi di akhir kata,
-    // periksa apakah kata yang diketik sesuai dengan kata yang seharusnya
-    if (value.endsWith(" ")) {
-      socket.emit("chat message", {
-        message,
-        fullName: localStorage.getItem("fullName") || "Anonymous",
-      });
-      // Trim spasi agar tidak terpengaruh spasi tambahan
-      if (value.trim() === currentWord) {
-        // Pindah ke kata berikutnya
-        setCurrentWordIndex((prevIndex) => prevIndex + 1);
-      }
-      // Reset input meskipun kata salah, atau bisa ditambahkan logika error/warning
-      setTypedWord("");
-    }
-  };
+	const joinGame = () => {
+		socket.emit("join", { style: "American English" });
+	};
 
-  return (
-    <div className="w-50 m-auto mt-5">
-      <div>
-        <p>Opponent WPM: 200</p>
-        <p>Time Left: 200</p>
-      </div>
+	const currentChunkStart = Math.floor(currentWordIndex / chunkSize) * chunkSize;
+	const displayedWords = words.slice(currentChunkStart, currentChunkStart + chunkSize);
+	const currentWord = words[currentWordIndex];
 
-      {/* Tampilan kata-kata */}
-      <div className="fs-3 mb-3">
-        {displayedWords.map((word, i) => {
-          // Hitung index global untuk tiap kata di tampilan
-          const globalIndex = currentChunkStart + i;
-          // Tandai kata yang sedang aktif
-          const isActive = globalIndex === currentWordIndex;
-          // Tandai kata yang sudah benar (yang index-nya kurang dari currentWordIndex)
-          const isCompleted = globalIndex < currentWordIndex;
-          return (
-            <span
-              key={i}
-              style={{
-                padding: "2px",
-                backgroundColor: isActive ? "#DDDDDD" : "transparent",
-                color: isCompleted ? "green" : "black",
-              }}
-            >
-              {word}{" "}
-            </span>
-          );
-        })}
-      </div>
+	const handleInputChange = (e) => {
+		const value = e.target.value;
+		setTypedWord(value);
 
-      {/* Input pengguna */}
-      <div className="mb-3">
-        <label className="form-label">Input</label>
-        <input
-          type="text"
-          className="form-control"
-          value={typedWord}
-          onChange={handleInputChange}
-          autoFocus
-        />
-      </div>
+		if (value.endsWith(" ")) {
+			if (value.trim() === currentWord) {
+				setCurrentWordIndex((prevIndex) => prevIndex + 1);
+				socket.emit("counter", { counter: currentWordIndex + 1 });
+			}
+			setTypedWord("");
+		}
+	};
 
-      {/* Tampilan informasi */}
-      <div>
-        <p>Current Word: {currentWord}</p>
-        <p>Current Index: {currentWordIndex}</p>
-      </div>
-    </div>
-  );
+	return (
+		<div className="w-50 m-auto mt-5">
+			{!gameStarted && (
+				<button onClick={joinGame} className="btn btn-primary mb-3">
+					Join Game
+				</button>
+			)}
+			<div>
+				{countdown !== null && <p>Countdown: {countdown}</p>}
+				{gameStarted && <p>Game is running!</p>}
+			</div>
+			<div className="fs-3 mb-3">
+				{displayedWords.map((word, i) => {
+					const globalIndex = currentChunkStart + i;
+					const isActive = globalIndex === currentWordIndex;
+					const isCompleted = globalIndex < currentWordIndex;
+					return (
+						<span
+							key={i}
+							style={{
+								padding: "2px",
+								backgroundColor: isActive ? "#DDDDDD" : "transparent",
+								color: isCompleted ? "green" : "black",
+							}}>
+							{word}{" "}
+						</span>
+					);
+				})}
+			</div>
+			<div className="mb-3">
+				<label className="form-label">Input</label>
+				<input type="text" className="form-control" value={typedWord} onChange={handleInputChange} disabled={!gameStarted} autoFocus />
+			</div>
+			<div>
+				{score !== null && <p>Your Score: {score}</p>}
+				<p>Current Word: {currentWord}</p>
+				<p>Current Index: {currentWordIndex}</p>
+			</div>
+		</div>
+	);
 }
