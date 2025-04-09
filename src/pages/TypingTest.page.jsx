@@ -40,7 +40,7 @@ export default function TypingTest() {
 	}, []);
 
 	const joinGame = () => {
-		socket.emit("join", { style: "American English" });
+		socket.emit("join", { style: "Slang/Informal" });
 	};
 
 	const currentChunkStart = Math.floor(currentWordIndex / chunkSize) * chunkSize;
