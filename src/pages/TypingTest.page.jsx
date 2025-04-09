@@ -1,10 +1,12 @@
-import { useEffect, useState } from "react";
-import { io } from "socket.io-client";
+import { useEffect, useState, useContext } from "react";
 import Swal from "sweetalert2";
-
-const socket = io("http://localhost:3000");
+import { useSocket } from "../contexts/socket.context";
+import { ThemeContext } from "../contexts/theme.context";
 
 export default function TypingTest() {
+	const socket = useSocket();
+	const { theme } = useContext(ThemeContext);
+
 	const chunkSize = 20;
 	const [words, setWords] = useState([]);
 	const [currentWordIndex, setCurrentWordIndex] = useState(0);
@@ -20,7 +22,11 @@ export default function TypingTest() {
 
 		socket.on("start", ({ paragraph }) => {
 			setWords(paragraph);
-			Swal.fire({ icon: "success", title: "Game Starting Soon", text: "Get ready!" });
+			Swal.fire({
+				icon: "success",
+				title: "Game Starting Soon",
+				text: "Get ready!",
+			});
 		});
 
 		socket.on("countdown", ({ countdown }) => setCountdown(countdown));
@@ -42,16 +48,21 @@ export default function TypingTest() {
 		socket.on("gameEnd", ({ status, score }) => {
 			setGameStarted(false);
 			setScore(score);
-			Swal.fire({ icon: "info", title: "Game Over", text: `Status: ${status}, Score: ${score}` });
+			Swal.fire({
+				icon: "info",
+				title: "Game Over",
+				text: `Status: ${status}, Score: ${score}`,
+			});
 			setCountdown(null);
 		});
 
 		return () => socket.disconnect();
-	}, []);
+	}, [socket]);
 
 	const resetState = () => {
 		setCurrentWordIndex(0);
 		setTypedWord("");
+		setCountdown(null);
 		setGameStarted(false);
 		setScore(null);
 	};
@@ -80,8 +91,10 @@ export default function TypingTest() {
 		}
 	};
 
+	const containerClass = theme === "dark" ? "bg-dark text-white" : "bg-light text-dark";
+
 	return (
-		<div className="w-50 m-auto mt-5">
+		<div className={`w-50 m-auto mt-5 p-3 ${containerClass}`} style={{ minHeight: "80vh", transition: "all 0.3s" }}>
 			{!gameStarted && (
 				<button onClick={joinGame} className="btn btn-primary mb-3">
 					Join Game
@@ -101,8 +114,9 @@ export default function TypingTest() {
 							key={i}
 							style={{
 								padding: "2px",
-								backgroundColor: isActive ? "#DDDDDD" : "transparent",
-								color: isCompleted ? "green" : "black",
+								backgroundColor: isActive ? (theme === "dark" ? "#444" : "#DDDDDD") : "transparent",
+								color: isCompleted ? (theme === "dark" ? "lightgreen" : "green") : theme === "dark" ? "#fff" : "#000",
+								transition: "background-color 0.3s, color 0.3s",
 							}}>
 							{word}{" "}
 						</span>
@@ -111,7 +125,7 @@ export default function TypingTest() {
 			</div>
 			<div className="mb-3">
 				<label className="form-label">Input</label>
-				<input type="text" className="form-control" value={typedWord} onChange={handleInputChange} disabled={!gameStarted} autoFocus />
+				<input type="text" className={`form-control ${theme === "dark" ? "bg-secondary text-white" : ""}`} value={typedWord} onChange={handleInputChange} disabled={!gameStarted} autoFocus />
 			</div>
 			<div>
 				{score !== null && <p>Your Score: {score}</p>}
