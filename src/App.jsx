@@ -1,12 +1,13 @@
-import { useState } from "react";
-import reactLogo from "./assets/react.svg";
-import viteLogo from "/vite.svg";
+import { useEffect, useState } from "react";
 import "./App.css";
+import TypingTestPage from "./pages/TypingTest.page";
 
 function App() {
-  const [count, setCount] = useState(0);
-
-  return <>Hello Compek</>;
+  return (
+    <>
+      <TypingTestPage />
+    </>
+  );
 }
 
 export default App;
