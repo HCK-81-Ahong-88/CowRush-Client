@@ -1,112 +1,154 @@
 import { useEffect, useState } from "react";
 import { io } from "socket.io-client";
 import Swal from "sweetalert2";
-
-const socket = io("http://localhost:3000");
+import { useSocket } from "../contexts/socket.context";
+import { ThemeContext } from "../contexts/theme.context";
 
 export default function TypingTest() {
-	const chunkSize = 20;
-	const [words, setWords] = useState([]);
-	const [currentWordIndex, setCurrentWordIndex] = useState(0);
-	const [typedWord, setTypedWord] = useState("");
-	const [countdown, setCountdown] = useState(null);
-	const [gameStarted, setGameStarted] = useState(false);
-	const [score, setScore] = useState(null);
+  const socket = useSocket();
 
-	useEffect(() => {
-		socket.on("waiting", ({ message }) => {
-			Swal.fire({ icon: "info", title: "Waiting", text: message });
-		});
+  const chunkSize = 20;
+  const [words, setWords] = useState([]);
+  const [currentWordIndex, setCurrentWordIndex] = useState(0);
+  const [typedWord, setTypedWord] = useState("");
+  const [countdown, setCountdown] = useState(null);
+  const [gameStarted, setGameStarted] = useState(false);
+  const [score, setScore] = useState(null);
+  const { theme } = useContext(ThemeContext);
 
-		socket.on("start", ({ paragraph }) => {
-			setWords(paragraph);
-			Swal.fire({ icon: "success", title: "Game Starting Soon", text: "Get ready!" });
-		});
+  useEffect(() => {
+    socket.on("waiting", ({ message }) => {
+      Swal.fire({ icon: "info", title: "Waiting", text: message });
+    });
 
-		socket.on("countdown", ({ countdown }) => setCountdown(countdown));
+    socket.on("start", ({ paragraph }) => {
+      setWords(paragraph);
+      Swal.fire({
+        icon: "success",
+        title: "Game Starting Soon",
+        text: "Get ready!",
+      });
+    });
 
-		socket.on("gameStart", () => {
-			setGameStarted(true);
-			setCountdown(null);
-		});
+    socket.on("countdown", ({ countdown }) => setCountdown(countdown));
 
-		socket.on("gameEnd", ({ status, score }) => {
-			setGameStarted(false);
-			setScore(score);
-			Swal.fire({ icon: "info", title: "Game Over", text: `Status: ${status}, Score: ${score}` });
-		});
+    socket.on("gameStart", () => {
+      setGameStarted(true);
+      setCountdown(null);
+    });
 
-		return () => socket.disconnect();
-	}, []);
+    socket.on("gameEnd", ({ status, score }) => {
+      setGameStarted(false);
+      setScore(score);
+      Swal.fire({
+        icon: "info",
+        title: "Game Over",
+        text: `Status: ${status}, Score: ${score}`,
+      });
+    });
 
-	const resetState = () => {
-		setCurrentWordIndex(0);
-		setTypedWord("");
-		setCountdown(null);
-		setGameStarted(false);
-		setScore(null);
-	};
+    return () => socket.disconnect();
+  }, []);
 
-	const joinGame = () => {
-		resetState();
-		socket.emit("join", { style: "Slang/Informal" });
-	};
+  const resetState = () => {
+    setCurrentWordIndex(0);
+    setTypedWord("");
+    setCountdown(null);
+    setGameStarted(false);
+    setScore(null);
+  };
 
-	const currentChunkStart = Math.floor(currentWordIndex / chunkSize) * chunkSize;
-	const displayedWords = words.slice(currentChunkStart, currentChunkStart + chunkSize);
-	const currentWord = words[currentWordIndex];
+  const joinGame = () => {
+    resetState();
+    socket.emit("join", { style: "Slang/Informal" });
+  };
 
-	const handleInputChange = (e) => {
-		const value = e.target.value;
-		setTypedWord(value);
+  const currentChunkStart =
+    Math.floor(currentWordIndex / chunkSize) * chunkSize;
+  const displayedWords = words.slice(
+    currentChunkStart,
+    currentChunkStart + chunkSize
+  );
+  const currentWord = words[currentWordIndex];
 
-		if (value.endsWith(" ")) {
-			if (value.trim() === currentWord) {
-				setCurrentWordIndex((prevIndex) => prevIndex + 1);
-				socket.emit("counter", { counter: currentWordIndex + 1 });
-			}
-			setTypedWord("");
-		}
-	};
+  const handleInputChange = (e) => {
+    const value = e.target.value;
+    setTypedWord(value);
 
-	return (
-		<div className="w-50 m-auto mt-5">
-			{!gameStarted && (
-				<button onClick={joinGame} className="btn btn-primary mb-3">
-					Join Game
-				</button>
-			)}
-			<div>
-				{countdown !== null && <p>Countdown: {countdown}</p>}
-				{gameStarted && <p>Game is running!</p>}
-			</div>
-			<div className="fs-3 mb-3">
-				{displayedWords.map((word, i) => {
-					const globalIndex = currentChunkStart + i;
-					const isActive = globalIndex === currentWordIndex;
-					const isCompleted = globalIndex < currentWordIndex;
-					return (
-						<span
-							key={i}
-							style={{
-								padding: "2px",
-								backgroundColor: isActive ? "#DDDDDD" : "transparent",
-								color: isCompleted ? "green" : "black",
-							}}>
-							{word}{" "}
-						</span>
-					);
-				})}
-			</div>
-			<div className="mb-3">
-				<label className="form-label">Input</label>
-				<input type="text" className="form-control" value={typedWord} onChange={handleInputChange} disabled={!gameStarted} autoFocus />
-			</div>
-			<div>
-				{score !== null && <p>Your Score: {score}</p>}
-				<p>Current Word: {currentWord}</p>
-				<p>Current Index: {currentWordIndex}</p>
-			</div>
-		</div>
-	);
+    if (value.endsWith(" ")) {
+      if (value.trim() === currentWord) {
+        setCurrentWordIndex((prevIndex) => prevIndex + 1);
+        socket.emit("counter", { counter: currentWordIndex + 1 });
+      }
+      setTypedWord("");
+    }
+  };
+
+  const containerClass =
+    theme === "dark" ? "bg-dark text-white" : "bg-light text-dark";
+
+  return (
+    <div
+      className={`w-50 m-auto mt-5 p-3 ${containerClass}`}
+      style={{ minHeight: "80vh", transition: "all 0.3s" }}
+    >
+      {!gameStarted && (
+        <button onClick={joinGame} className="btn btn-primary mb-3">
+          Join Game
+        </button>
+      )}
+      <div>
+        {countdown !== null && <p>Countdown: {countdown}</p>}
+        {gameStarted && <p>Game is running!</p>}
+      </div>
+      <div className="fs-3 mb-3">
+        {displayedWords.map((word, i) => {
+          const globalIndex = currentChunkStart + i;
+          const isActive = globalIndex === currentWordIndex;
+          const isCompleted = globalIndex < currentWordIndex;
+          return (
+            <span
+              key={i}
+              style={{
+                padding: "2px",
+                backgroundColor: isActive
+                  ? theme === "dark"
+                    ? "#444"
+                    : "#DDDDDD"
+                  : "transparent",
+                color: isCompleted
+                  ? theme === "dark"
+                    ? "lightgreen"
+                    : "green"
+                  : theme === "dark"
+                  ? "#fff"
+                  : "#000",
+                transition: "background-color 0.3s, color 0.3s",
+              }}
+            >
+              {word}{" "}
+            </span>
+          );
+        })}
+      </div>
+      <div className="mb-3">
+        <label className="form-label">Input</label>
+        <input
+          type="text"
+          className={`form-control ${
+            theme === "dark" ? "bg-secondary text-white" : ""
+          }`}
+          value={typedWord}
+          onChange={handleInputChange}
+          disabled={!gameStarted}
+          autoFocus
+        />
+      </div>
+      <div>
+        {score !== null && <p>Your Score: {score}</p>}
+        <p>Current Word: {currentWord}</p>
+        <p>Current Index: {currentWordIndex}</p>
+      </div>
+    </div>
+  );
 }
