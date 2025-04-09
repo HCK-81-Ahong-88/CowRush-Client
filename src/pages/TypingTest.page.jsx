@@ -1,75 +1,44 @@
+import axios from "axios";
 import { useEffect, useState } from "react";
+import { getBaseUrl } from "../helpers/helper";
+import Swal from "sweetalert2";
 
 export default function TypingTest() {
   const chunkSize = 20;
-  const [words] = useState([
-    "The",
-    "land",
-    "feels",
-    "damp.",
-    "Plants",
-    "push",
-    "forth",
-    "from",
-    "tiny",
-    "seeds.",
-    "Rain",
-    "falls.",
-    "Green",
-    "moss",
-    "grows.",
-    "Birds",
-    "sing.",
-    "Trees",
-    "sway.",
-    "Life",
-    "stirs.",
-    "Bugs",
-    "stirs.",
-    "Bugs",
-    "crawl.",
-    "Sun",
-    "sets.",
-    "Stars",
-    "gleam.",
-    "Air",
-    "chills.",
-    "Wolves",
-    "howl.",
-    "chills.",
-    "Wolves",
-    "howl.",
-    "Paths",
-    "twist.",
-    "Roots",
-    "grow.",
-    "Soil",
-    "packs.",
-    "Seeds",
-    "wait.",
-    "More",
-    "Soil",
-    "packs.",
-    "Seeds",
-    "wait.",
-    "More",
-    "Soil",
-    "packs.",
-    "Seeds",
-    "wait.",
-    "More",
-    "Soil",
-    "packs.",
-    "Seeds",
-    "wait.",
-    "More",
-    "Soil",
-    "packs.",
-    "Seeds",
-    "wait.",
-    "More",
-  ]);
+  const [words, setWords] = useState([]);
+  const [message, setMessage] = useState("");
+  const [messages, setMessages] = useState([]);
+  useEffect(() => {
+    socket.on("chat message/response", (params) => {
+      console.log(params, "<<< message dari server");
+      setMessages(params.messages);
+    });
 
+    socket.emit("get chat messages");
+
+    return () => {
+      socket.disconnect();
+    };
+  }, []);
+
+  async function fetchParagraph() {
+    try {
+      const response = await axios.post(getBaseUrl() + "/generateText", {
+        style: "American English",
+      });
+      setWords(response.data.data);
+    } catch (error) {
+      console.log(error);
+      Swal.fire({
+        icon: "error",
+        title: "Error",
+        text: error.response.data.message,
+      });
+    }
+  }
+  useEffect(() => {
+    fetchParagraph();
+  }, []);
   // currentWordIndex menyimpan index global kata yang sedang diketik
   const [currentWordIndex, setCurrentWordIndex] = useState(0);
   const [typedWord, setTypedWord] = useState("");
@@ -92,6 +61,10 @@ export default function TypingTest() {
     // Jika pengguna mengetik spasi di akhir kata,
     // periksa apakah kata yang diketik sesuai dengan kata yang seharusnya
     if (value.endsWith(" ")) {
+      socket.emit("chat message", {
+        message,
+        fullName: localStorage.getItem("fullName") || "Anonymous",
+      });
       // Trim spasi agar tidak terpengaruh spasi tambahan
       if (value.trim() === currentWord) {
         // Pindah ke kata berikutnya
@@ -101,7 +74,7 @@ export default function TypingTest() {
       setTypedWord("");
     }
   };
-  console.log("current chunk start:", currentChunkStart);
+
   return (
     <div className="w-50 m-auto mt-5">
       <div>
