@@ -39,7 +39,16 @@ export default function TypingTest() {
 		return () => socket.disconnect();
 	}, []);
 
+	const resetState = () => {
+		setCurrentWordIndex(0);
+		setTypedWord("");
+		setCountdown(null);
+		setGameStarted(false);
+		setScore(null);
+	};
+
 	const joinGame = () => {
+		resetState();
 		socket.emit("join", { style: "Slang/Informal" });
 	};
 
