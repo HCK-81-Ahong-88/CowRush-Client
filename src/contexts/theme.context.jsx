@@ -1,12 +1,12 @@
 import { createContext, useContext, useState } from "react";
 
 export const ThemeContext = createContext({
-	theme: "light",
+	theme: "dark",
 	setTheme: () => {},
 });
 
 export const ThemeProvider = ({ children }) => {
-	const [defaultTheme, setDefaultTheme] = useState(localStorage.getItem("theme") || "light");
+	const [defaultTheme, setDefaultTheme] = useState(localStorage.getItem("theme") || "dark");
 
 	const setTheme = (newTheme) => {
 		setDefaultTheme(newTheme);

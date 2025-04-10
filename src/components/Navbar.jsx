@@ -21,9 +21,9 @@ export default function Navbar() {
 	};
 
 	return (
-		<nav className={`navbar navbar-expand-lg bg-${theme} sticky-top`}>
+		<nav className={`navbar navbar-expand-lg sticky-top`}>
 			<div className="container-fluid">
-				<a className={`navbar-brand text-${theme === "light" ? "dark" : "light"}`} href="#">
+				<a className={`navbar-brand`} href="#">
 					<h5>Cow Rush</h5>
 				</a>
 				<button className="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
@@ -32,12 +32,10 @@ export default function Navbar() {
 				<div className="collapse navbar-collapse" id="navbarSupportedContent">
 					<div className="navbar-nav me-auto"></div>
 
-					{/* Tombol toggle theme */}
 					<button onClick={handleChangeTheme} className="btn btn-secondary">
 						{theme === "light" ? <i className="bi bi-moon-fill"></i> : <i className="bi bi-sun-fill"></i>}
 					</button>
 
-					{/* Tombol logout (hanya muncul jika user login) */}
 					{isLogin && (
 						<button className="btn btn-outline-danger mx-1" onClick={handleLogout}>
 							Logout
