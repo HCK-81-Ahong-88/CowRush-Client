@@ -16,45 +16,37 @@ export default function TypingTest() {
 	const [score, setScore] = useState(null);
 
 	useEffect(() => {
-		socket.on("waiting", ({ message }) => {
-			Swal.fire({ icon: "info", title: "Waiting", text: message });
-		});
-
-		socket.on("start", ({ paragraph }) => {
+		const handleWaiting = ({ message }) => Swal.fire({ icon: "info", title: "Waiting", text: message });
+		const handleStart = ({ paragraph }) => {
 			setWords(paragraph);
-			Swal.fire({
-				icon: "success",
-				title: "Game Starting Soon",
-				text: "Get ready!",
-			});
-		});
-
-		socket.on("countdown", ({ countdown }) => setCountdown(countdown));
-
-		socket.on("gameStart", () => {
+			Swal.fire({ icon: "success", title: "Game Starting Soon", text: "Get ready!" });
+		};
+		const handleCountdown = ({ countdown }) => setCountdown(countdown);
+		const handleGameStart = () => {
 			setGameStarted(true);
 			setCountdown(180);
-			const countdownInterval = setInterval(() => {
-				setCountdown((prevCountdown) => {
-					if (prevCountdown <= 1) {
-						clearInterval(countdownInterval);
+			const interval = setInterval(() => {
+				setCountdown((prev) => {
+					if (prev <= 1) {
+						clearInterval(interval);
 						return 0;
 					}
-					return prevCountdown - 1;
+					return prev - 1;
 				});
 			}, 1000);
-		});
-
-		socket.on("gameEnd", ({ status, score }) => {
+		};
+		const handleGameEnd = ({ status, score }) => {
 			setGameStarted(false);
 			setScore(score);
-			Swal.fire({
-				icon: "info",
-				title: "Game Over",
-				text: `Status: ${status}, Score: ${score}`,
-			});
+			Swal.fire({ icon: "info", title: "Game Over", text: `Status: ${status}, Score: ${score}` });
 			setCountdown(null);
-		});
+		};
+
+		socket.on("waiting", handleWaiting);
+		socket.on("start", handleStart);
+		socket.on("countdown", handleCountdown);
+		socket.on("gameStart", handleGameStart);
+		socket.on("gameEnd", handleGameEnd);
 
 		return () => socket.disconnect();
 	}, [socket]);
@@ -70,8 +62,7 @@ export default function TypingTest() {
 	const joinGame = () => {
 		resetState();
 		const styles = ["Old English-esque", "Modern Standard", "Slang/Informal", "Gen Z"];
-		const randomStyle = styles[Math.floor(Math.random() * styles.length)];
-		socket.emit("join", { style: randomStyle });
+		socket.emit("join", { style: styles[Math.floor(Math.random() * styles.length)] });
 	};
 
 	const currentChunkStart = Math.floor(currentWordIndex / chunkSize) * chunkSize;
@@ -81,20 +72,15 @@ export default function TypingTest() {
 	const handleInputChange = (e) => {
 		const value = e.target.value;
 		setTypedWord(value);
-
-		if (value.endsWith(" ")) {
-			if (value.trim() === currentWord) {
-				setCurrentWordIndex((prevIndex) => prevIndex + 1);
-				socket.emit("counter", { counter: currentWordIndex + 1 });
-			}
+		if (value.endsWith(" ") && value.trim() === currentWord) {
+			setCurrentWordIndex((prev) => prev + 1);
+			socket.emit("counter", { counter: currentWordIndex + 1 });
 			setTypedWord("");
 		}
 	};
 
-	const containerClass = theme === "dark" ? "bg-dark text-white" : "bg-light text-dark";
-
 	return (
-		<div className={`w-50 m-auto mt-5 p-3 ${containerClass}`} style={{ minHeight: "80vh", transition: "all 0.3s" }}>
+		<div className="w-50 m-auto mt-5 p-3" style={{ minHeight: "80vh", transition: "all 0.3s" }}>
 			{!gameStarted && (
 				<button onClick={joinGame} className="btn btn-primary mb-3">
 					Join Game
@@ -125,7 +111,7 @@ export default function TypingTest() {
 			</div>
 			<div className="mb-3">
 				<label className="form-label">Input</label>
-				<input type="text" className={`form-control ${theme === "dark" ? "bg-secondary text-white" : ""}`} value={typedWord} onChange={handleInputChange} disabled={!gameStarted} autoFocus />
+				<input type="text" className="form-control" value={typedWord} onChange={handleInputChange} disabled={!gameStarted} autoFocus />
 			</div>
 			<div>
 				{score !== null && <p>Your Score: {score}</p>}
