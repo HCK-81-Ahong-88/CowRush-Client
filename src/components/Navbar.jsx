@@ -32,7 +32,7 @@ export default function Navbar() {
 				<div className="collapse navbar-collapse" id="navbarSupportedContent">
 					<div className="navbar-nav me-auto"></div>
 
-					<button onClick={handleChangeTheme} className="btn btn-secondary">
+					<button onClick={handleChangeTheme} className="btn btn-outline-secondary mx-1" type="button" aria-label="Toggle theme">
 						{theme === "light" ? <i className="bi bi-moon-fill"></i> : <i className="bi bi-sun-fill"></i>}
 					</button>
 
