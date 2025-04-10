@@ -2,6 +2,7 @@ import { useEffect, useState, useContext } from "react";
 import Swal from "sweetalert2";
 import { useSocket } from "../contexts/socket.context";
 import { ThemeContext } from "../contexts/theme.context";
+import LoadingPage from "./LoadingPage";
 
 export default function TypingTest() {
 	const socket = useSocket();
@@ -14,10 +15,17 @@ export default function TypingTest() {
 	const [countdown, setCountdown] = useState(null);
 	const [gameStarted, setGameStarted] = useState(false);
 	const [score, setScore] = useState(null);
+	const [isWaiting, setIsWaiting] = useState(false);
+	const [waiting, setWaiting] = useState(false);
 
 	useEffect(() => {
-		const handleWaiting = ({ message }) => Swal.fire({ icon: "info", title: "Waiting", text: message });
+		const handleWaiting = () => {
+			setIsWaiting(true);
+			setWaiting(true);
+		};
 		const handleStart = ({ paragraph }) => {
+			setIsWaiting(false);
+			setWaiting(false);
 			setWords(paragraph);
 			Swal.fire({ icon: "success", title: "Game Starting Soon", text: "Get ready!" });
 		};
@@ -57,10 +65,12 @@ export default function TypingTest() {
 		setCountdown(null);
 		setGameStarted(false);
 		setScore(null);
+		setIsWaiting(false);
 	};
 
 	const joinGame = () => {
 		resetState();
+		setWaiting(true);
 		const styles = ["Old English-esque", "Modern Standard", "Slang/Informal", "Gen Z"];
 		socket.emit("join", { style: styles[Math.floor(Math.random() * styles.length)] });
 	};
@@ -78,6 +88,10 @@ export default function TypingTest() {
 			setTypedWord("");
 		}
 	};
+
+	if (waiting || isWaiting) {
+		return <LoadingPage />;
+	}
 
 	return (
 		<div className="w-50 m-auto mt-5 p-3" style={{ minHeight: "80vh", transition: "all 0.3s" }}>

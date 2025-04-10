@@ -1,7 +1,6 @@
 import TypingTest from "./pages/TypingTest.page";
 import LoginPage from "./pages/Login";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
-import LoadingPage from "./pages/LoadingPage";
 import { ThemeProvider } from "./contexts/theme.context";
 import LoginLayout from "./layouts/LoginLayout";
 import AuthLayout from "./layouts/AuthLayout";
@@ -15,7 +14,6 @@ function App() {
 					<Routes>
 						<Route path="/" element={<LoginLayout />}>
 							<Route index element={<LoginPage />} />
-							<Route path="/loading" element={<LoadingPage />} />
 						</Route>
 						<Route path="/typing-test" element={<AuthLayout />}>
 							<Route index element={<TypingTest />} />
